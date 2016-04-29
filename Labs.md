@@ -1,35 +1,36 @@
 # Các bài lab với DHCP
 ## Mục lục
 
-[1.Cài đặt DHCP server] (#1)
+[I.Cài đặt DHCP server] (#I)
 
-[2.Cấu hình file configuration] (#2)
+[II.Labs] (#II)
 
-[a.Subnet Declaration] (#2a)
+[1.Subnet Declaration] (#1)
 
-[b.Range Parameter] (#2b)
+[2.Range Parameter] (#2)
 
-[c.Static IP Address Using DHCP] (#2c)
+[3.Static IP Address Using DHCP] (#3)
 
-[d.Shared-network Declaration] (#2d)
+[4.Shared-network Declaration] (#4)
 
-[e.Group Declaration] (#2e)
+[5.Group Declaration] (#5)
 
-[3.DHCP Relay Agent] (#3)
+[III.DHCP Relay Agent] (#III)
 
-<a name="1"></a>
-### 1.Cài đặt DHCP server
-Trước tiên bạn cài đặt gói DHCP với quyền root.
-<img src="http://i.imgur.com/8Ew5WCX.png" />
+<a name="I"></a>
+### I.Cài đặt DHCP server
+- Trong các bài labs này, tôi dùng hđh centos 6.7 làm DHCP Server và DHCP Relay agent.
+- Trước tiên bạn cài đặt gói DHCP với quyền root.
+`yum -y install dhcp`
 
-Sau khi cài, sẽ xuất hiện file configuration tại đường dẫn /etc/dhcp/dhcpd.conf, nhưng chỉ là file trống.
+- Sau khi cài, sẽ xuất hiện file configuration tại đường dẫn /etc/dhcp/dhcpd.conf, nhưng chỉ là file trống.
 <img src="http://i.imgur.com/rXNdDXf.png" />
 
 File configuration tương tự được lưu tại đường dẫn /usr/share/doc/dhcp-4.1.1/dhcpd.conf.sample, bạn
 có thể dùng file này để cấu hình file configuration của bạn vì nó hướng dẫn rất chi tiết.
 
-<a name="2"></a>
-### 2.Cấu hình file configuration
+<a name="II"></a>
+### II.Một số mô hình DHCP đơn giản
 - Bước đầu tiên để cấu hình DHCP server là bạn phải tạo 1 file configuration ở đó lưu trữ thông tin về mạng
 cho clients.Sử dụng file này để khai báo các tùy chọn riêng và chung cho hệ thống các clients.
 - Có 2 kiểu báo cáo:
@@ -39,20 +40,57 @@ cấu hình network gửi đến clients là gì.
 hoặc áp dụng 1 nhóm các thông số tới 1 nhóm các khai báo.
 - Các thông số thường được bắt đầu bằng các từ khóa "options"
 - Các thông số trước dấu "{}" được coi là thông số chung, áp dụng cho tất cả các phần bên dưới nó.
-- Mô hình sau sẽ là mô hình dùng chung cho lab a,b,c.Các máy ảo đều sử dụng card VMnet1.
-<img src="http://i.imgur.com/CIZAbfr.png" />
 
-- Ở đây tôi dùng các máy ảo Centos2 làm dhcp server, Centos làm dhcp relay agent, 2 clients là win7 và win8(máy thật).
+<a name="1"></a>
+#### 1.Subnet Declaration
+##### 1.1.Mô hình
+<img src="http://i.imgur.com/OC14xPD.png" />
 
-<a name="2a"></a>
-#### a.Subnet Declaration
+- DHCP server sử dụng card VMnet1 trên Vmware và có IP:10.0.1.1.
+- Client chạy hđh win7, sử dụng card VMnet1 trên vmware(bắt buộc cùng card với DHCP server), sử dụng dịch vụ dhcp để nhận IP.
+- Dải IP được cấp: 10.0.1.10 - 10.0.1.20
+
+##### 1.2.Giới thiệu
 - Các tùy chọn về routers(default gateway), subnet-mask, domain-search, domain-name-servers, và time-offset
 được sử dụng cho bất kì host nào được khai báo bên dưới.
 - Với mỗi subnet được cấp và được kết nối tới DHCP server, nhất định phải có 1 subnet được khai báo để
 cho DHCP server công nhận là có 1 địa chỉ trong subnet đó, kể cả subnet đó được khai báo rỗng không có địa chỉ 
 thì nó sẽ được cấp động.
-- Trong ví dụ này, có các tùy chọn chung cho các clients trong subnet được khai báo.Các clients được đăng kí
-trong 1 địa chỉ ip nằm trong rải đã cho.
+
+##### 1.3.Các bước triển khai
+- Add thêm card mạng.
+- Đặt IP cho máy.
+- Khai báo file config
+- Start dịch vụ và test.
+
+##### 1.4.Triển khai chi tiết
+###### a.Add thêm card mạng.
+- Trên thanh công cụ của vmware, vào phần *VM* -> *Settings* sẽ hiện ra bảng cấu hình cho máy ảo của bạn, hoặc bạn có thể ấn Ctrl + D.
+<img src="http://i.imgur.com/R6ctY0U.png" />
+
+- Sau khi hiện ra bảng cấu hình, bạn chọn *Add* -> *Network Adapter* -> *Next* -> *Custom: Specific virtual network* -> *VMNet1* 
+-> *Finish* -> *OK*
+<img src="http://i.imgur.com/oMUACdN.png" />
+- Vậy là bạn đã add thành công card VMNet1, vào kiểm tra xem máy ảo đã nhận card hay chưa.
+<img src="http://i.imgur.com/EJBMCou.png" />
+
+- Các bạn làm tương tự với các máy ảo còn lại.
+
+###### b.Đặt IP cho máy.
+- Cấu hình IP cho DHCP server:bạn phải tạo 1 file ifcfg-eth1 là file cấu hình cho card mạng VMNet1 mới tạo.
+Do nó k có sẵn nên t copy từ file ifcfg-eth0 và chỉnh sửa cho phù hợp.Các file này trong đường dẫn */etc/sysconfig/network-scripts*
+```sh
+cp /etc/sysconfig/network-scripts/ifcfg-eth0 /etc/sysconfig/network-scriptsifcfg-eth1
+vi /etc/sysconfig/network-scriptsifcfg-eth1
+```
+<img src="http://i.imgur.com/BfMVlbM.png" />
+
+- Các tham số có mũi tên đỏ là các tham số cần chỉnh sửa và thêm vào.
+- Bạn up card mạng lên: `ifup eth1`
+- Kiểm tra IP: `ip a`
+<img src="http://i.imgur.com/pPcfMsq.png" />
+
+###### c.Khai báo file config
 - Bạn khai báo vào file  /etc/dhcp/dhcpd.conf  như sau:
 
 ```sh
@@ -68,7 +106,8 @@ subnet *subnet* netmask *netmask* {
 
 <img src="http://i.imgur.com/HXwhXF4.png" />
 
-- Sau đó start dịch vụ dhcp trên server.
+###### d. Start dịch vụ và test
+- Start dịch vụ dhcp trên server.
 - Xin cấp ip từ dhcp server của client.
 <img src="http://i.imgur.com/bf2zS2I.png" />
 
@@ -76,10 +115,23 @@ subnet *subnet* netmask *netmask* {
 
 <img src="http://i.imgur.com/1OaPS9S.png" />
 
-<a name="2b"></a>
-#### b.Range Parameter
+<a name="2"></a>
+#### 2.Range Parameter
+##### 2.1.Mô hình
+<img src="http://i.imgur.com/bjTaOxt.png" />
+
+- Cấu hình Server và Client như phần 1
+- Dải IP được cấp: 10.0.1.21 - 10.0.1.30 
+
+##### 2.2 Giới thiệu
 - Trong ví dụ này DHCP server sẽ khai báo default lease time, maximum lease time và các giá trị cấu hình mạng
 cho tất cả clients cùng hay # subnet(khác với ví dụ trên là áp dụng riêng cho các client trong cùng 1 subnet)
+
+##### 2.3 Các bước triển khai
+- Khai báo file config
+- Restart dịch vụ và test.
+
+##### 2.4.Triển khai chi tiết
 - Tương tự tôi khai báo vào file conf như sau:
 
 ```sh
@@ -101,12 +153,24 @@ subnet ... netmask ... {
 
 <img src="http://i.imgur.com/ytdn9Ne.png" />
 
-<a name="2c"></a>
-#### c.Static IP Address Using DHCP
+<a name="3"></a>
+#### 3.Static IP Address Using DHCP
+##### 3.1.Mô hình
+<img src="http://i.imgur.com/JHimYuV.png" />
+
+- Cấu hình Server và Client như phần 1
+- IP được fix cố định cho client: 10.0.1.32 dựa trên địa chỉ MAC:00-0C-29-FE-01-4E của client.
+
+##### 3.2. Giới thiệu
 - Để đăng kí địa chỉ ip dựa trên địa chỉ MAC của card mạng, tôi sử dụng thông số hardware ethernet cùng với
 khai báo host.
-- Với kiểu khai báo này thì card mạng có địa chỉ Mac 00-0C-29-FE-01-4E sẽ luôn nhận địa chỉ 10.0.1.32
 
+##### 3.3 Các bước triển khai
+- Khai báo file config
+- Restart dịch vụ và test.
+
+##### 3.4 Triển khai chi tiết
+- Khai báo vào file conf như sau:
 ```sh
 default-lease-time ...;
 max-lease-time ...;
@@ -124,20 +188,42 @@ host *host name* {
     fixed-address *IP fixed*; 
 } 
 ```
-
+- Bắc buộc phải có tham số *subnet ... mask ... {}* thì dịch vụ mới chạy được.
+- Kiểm tra trên client
 <img src="http://i.imgur.com/NOpapxF.png" />
 
-<a name="2d"></a>
-#### d.Shared-network Declaration
+<a name="4"></a>
+#### 4.Shared-network Declaration
+##### 4.1.Mô hình mạng
+<img src="http://i.imgur.com/YZsue5P.png" />
+
+- DHCP server, có 1 kết nối tới Router, IP:192.168.1.254, ở đây tôi sử dụng card VMnet1.
+- Router:
+<ul>
+	<li>cổng f0/0 kết nối với DHCP server, IP:192.168.1.1</li>
+	<li>cổng f0/1 kết nối với mạng lan, ko có IP, chạy router on stick để chia vlan</li>
+	<li>Subinterface f0/0.11 kết nối với vlan 11, IP:10.0.11.1</li>
+	<li>Subinterface f0/0.22 kết nối với vlan 22, IP:10.0.22.1</li>
+</ul>
+- Switch:cổng nối với Router mode trunk, các cổng nối với mạng lan để mode access.
+
+##### 4.2 Giới thiệu
 - Khi bạn muốn cấp nhiều ip cho nhiều subnet mạng của bạn, mà bạn chỉ có 1 DHCP server thì bạn sẽ dùng phương pháp này.
 - Tiết kiệm được chi phí nhưng hiệu năng của dhcp server sẽ kém đi.
-- Mô hình mạng như sau:
-<img src="http://i.imgur.com/4OUyfVL.png" />
 
-- Khai báo trên file conf của dhcp server và cấu hình ip cho dhcp server: 
+##### 4.3 Các bước triển khai
+- Cấu hình DHCP server
+- Cấu hình Router
+- Cấu hình Switch
+- Restart dịch vụ và test
+
+##### 4.4 Triển khai chi tiết
+###### a. Cấu hình DHCP server
+- Cấu hình ip cho dhcp server: 192.168.1.254
+- Khai báo trên file conf của dhcp server:
 
 ```sh
-subnet ... netmask ... {   
+subnet 192.168.1.0 netmask 255.255.255.0 {   
 } 
 shared-network 11-22 { 
 subnet ... netmask ... { 
@@ -158,7 +244,8 @@ subnet ... netmask ... {
 } 
 } 
 ```
-
+*11-22* : tên bạn tùy chọn, 
+*subnet* : các subnet bạn muốn cấp IP.
 - Cấu hình định tuyến tĩnh đến 2 vlan và show bảng định tuyến.
 
 ```sh
@@ -166,10 +253,9 @@ ip route add vlan1/24 via IpRouter
 ip route add vlan2/24 via IpRouter
 route -n
 ```
-
 <img src="http://i.imgur.com/wgoi6bj.png" />
 
-- Cấu hình Router:
+###### b. Cấu hình Router:
 
 ```sh
  interface FastEthernet0/0 
@@ -187,7 +273,7 @@ route -n
   ip helper-address IpDHCPServer
 ```
 
-- Cấu hình Switch:
+###### c.Cấu hình Switch:
 
 ```sh
  Vlan 11 
@@ -201,8 +287,8 @@ route -n
  interface range f0/21-24 
  switchport mode trunk 
 ```
-
-- Reload lại dịch vụ dhcp trên server và kiểm tra ip trên 2 client thuộc 2 vlan # nhau.
+###### d.Restart dịch vụ và test
+- Restart lại dịch vụ dhcp trên server và kiểm tra ip trên 2 client thuộc 2 vlan # nhau.
 - vlan 11:
 
 <img src="http://i.imgur.com/UeoYABa.png" />
@@ -211,12 +297,25 @@ route -n
 
 <img src="http://i.imgur.com/s8LhlRz.jpg" height=50% width=50% />
 
-<a name="2e"></a>
-#### e.Group Declaration
+<a name="5"></a>
+#### 5.Group Declaration
+##### 5.1 Mô hình mạng
+<img src="http://i.imgur.com/lVbHn0j.png" />
+- Cấu hình Server và Client như phần 1
+- IP được fix cố định cho client win7: 10.0.1.55 dựa trên địa chỉ MAC:00-0C-29-FE-01-4E .
+- IP được fix cố định cho client win8: 10.0.1.56 dựa trên địa chỉ MAC:00-50-56-C0-00-01 .
+
+##### 5.2 Giới thiệu
 - Khai báo group được sử dụng để áp các thông số chung cho nhóm đấy.
 - Có thể là 1 nhóm shared-network, subnets hoặc các host.
 - Ở đây tôi sẽ ví dụ về 1 nhóm các host.
 
+##### 5.3 Các bước triển khai
+- Cấu hình file config.
+- Restart dịch vụ và test.
+
+##### 5.4 Triển khai chi tiết
+- Cấu hình file config
 ```sh
  group {
    option routers                  ...;
@@ -245,20 +344,34 @@ route -n
 - Kiểm tra trên client win8
 <img src="http://i.imgur.com/CKaWqNp.png" />
 
-<a name="3"></a>
-### 3.DHCP Relay Agent
-- Mô hình mạng như sau:
-<img src="http://i.imgur.com/sK8QbiJ.png" />
+<a name="III"></a>
+### III.DHCP Relay Agent
+#### 1. Mô hình mạng.
+<img src="http://i.imgur.com/4UvSBwI.png" />
 
+- DHCP server: sử dụng card VMNet2 nối với DHCP relay agent, IP:10.0.2.1
+- DHCP relay agent:
+<ul>
+	<li>card VMNet2 nối với DHCP server, IP:10.0.2.2</li>
+	<li>card VMNet1 nối với mạng lan, IP:10.0.1.2</li>
+</ul>
+- 2 client win7, win8 sử dụng card VMNet1 để nhận ip động.
+
+#### 2. Giới thiệu
 - DHCP relay agent cho phép chuyển các yêu cầu dhcp và bootp từ 1 subnet ko có dhcp server trong đấy,
 tới 1 hoặc nhiều dhcp server trên các subnet khác.
 - Khi 1 client yêu cầu thông tin, DHCP relay agent chuyển yêu cầu đấy đến danh sách các dhcp server xác định
 - Khi 1 DHCP server gửi lại reply, thì reply đó có thể là broadcast hoặc unicast gửi đến yêu cầu từ nguồn ban đầu.
 - Mặc định DHCP server sẽ lắng nghe tất cả các yêu cầu DHCP từ tất cả các card mạng, trừ khi nó được chỉ định
 trong /etc/sysconfig/dhcrelay với chỉ thị "INTERFACES".
-- Giờ ta bắt đầu cấu hình DHCP relay agent.
 
-#### a.Cấu hình trên dhcp server
+#### 3.Các bước triển khai
+- Cấu hình DHCP server
+- Cấu hình DHCP relay agent
+- Test
+
+#### 4.Triển khai chi tiết
+##### a.Cấu hình DHCP server
 - Set IP trên card VMnet2 nối với DHCP relay agent.
 <img src="http://i.imgur.com/Cd954IA.png" />
 
@@ -287,7 +400,7 @@ trong /etc/sysconfig/dhcrelay với chỉ thị "INTERFACES".
 
 - Cuối cùng khởi động lại dịch vụ dhcp: "service dhcpd restart".
 
-#### b.Cấu hình trên dhcp relay agent
+##### b.Cấu hình trên dhcp relay agent
 - Set IP trên card VMnet2 nối với DHCP server và VMnet1 nối với subnet 1.
 <img src="http://i.imgur.com/SUNCu8N.png" />
 
@@ -301,7 +414,7 @@ trong /etc/sysconfig/dhcrelay với chỉ thị "INTERFACES".
 
 - Cuối cùng khởi động lại dịch vụ dhcrelay: "service dhcrelay restart".
 
-#### c.Kiểm tra ip trên client
+##### c.Kiểm tra ip trên client
 - win7:
 
 <img src="http://i.imgur.com/EPQWBKx.png" />
